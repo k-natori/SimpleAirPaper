@@ -95,6 +95,29 @@ void receiveFormFile(WiFiClient client)
   receivedFileName = fileName;
 }
 
+void receivePostPng(WiFiClient client)
+{
+  String fileName = "/received.png";
+  SD.remove(fileName);
+  File receivedFile = SD.open(fileName, FILE_WRITE);
+  while (client.available())
+  {
+    byte buffer[256];
+    size_t bufferLength = client.readBytes(buffer, 256);
+
+    if (bufferLength > 0)
+    {
+      receivedFile.write(buffer, bufferLength);
+    }
+    else
+    {
+      break;
+    }
+  }
+  receivedFile.close();
+  receivedFileName = fileName;
+}
+
 void displayAndShutdown()
 {
   canvas.drawString("Going to shutdown", 20, 20);
@@ -171,7 +194,7 @@ void loop()
   if (client)
   {
     boolean isPOST = false;
-    boolean isFile = false;
+    boolean isPNG = false;
     String result = "";
     String line = "";
 
@@ -188,9 +211,9 @@ void loop()
         }
         else if (line.startsWith("Content-Type:"))
         {
-          if (line.indexOf("multipart") > 0) 
+          if (line.indexOf("image/png") > 0) 
           {
-            isFile = true;
+            isPNG = true;
           }
         }
         if (logFile)
@@ -205,7 +228,7 @@ void loop()
             displayForm(client);
             
           }
-          else if (!isFile)
+          else if (!isPNG)
           {
             receiveFormText(client);
             client.println("HTTP/1.1 200 OK");
@@ -218,7 +241,7 @@ void loop()
           }
           else
           {
-            receiveFormFile(client);
+            receivePostPng(client);
             client.println("HTTP/1.1 200 OK");
             client.println("Content-Type: text/html");
             client.println("Connection: close");
@@ -236,14 +259,19 @@ void loop()
       logFile.close();
     }
 
-    canvas.drawString(result, 520, 60);
-
     if (receivedFileName.length() > 0) {
       if (receivedFileName.endsWith("png")) {
+        canvas.fillCanvas(BLACK);
+        canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
+        delay(500);
         canvas.drawPngFile(SD, "/received.png");
+        canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
+        delay(1000);
+        M5.shutdown();
+        return;
       }
     }
-
+    canvas.drawString(result, 540, 60);
     canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
   }
 }

@@ -4,15 +4,76 @@
 <meta charset="UTF-8">
 <title>Sample</title>
 </head>
-
 <body>
 
-<p>Upload image</p>
-<form method="post" enctype="multipart/form-data">
-<input type="file" accept="image/png, image/jpeg" name="upload" required>
-<button type="submit">submit</button>
-</form>
+<p id="message">Select image and push upload</p>
 
-<p>Image file should be 960x540 png for this version.</p>
+<input type="file" id="file" accept="image/*" oninput="fileSelected()">
+<button id="upload" onclick="upload()">Upload</button>
+<canvas id="canvas" width="960" height="540"></canvas>
+
+<script type="text/javascript">
+var file = null;
+var blob = null;
+const MAX_WIDTH = 960;
+const MAX_HEIGHT = 540;
+function fileSelected() {
+	file = document.getElementById("file").files[0];
+	
+	var image = new Image();
+	var reader = new FileReader();
+	
+	reader.onload = () => {
+		image.src = reader.result;
+	}
+	
+	image.onload = () => {
+		var x = 0, y = 0, width, height;
+		if (image.width > image.height) {
+			var ratio = image.height / image.width;
+			width = MAX_WIDTH;
+			height = MAX_WIDTH * ratio;
+			y = (MAX_HEIGHT - height) / 2;
+		} else {
+			var ratio = image.width / image.height;
+			width = MAX_HEIGHT * ratio;
+			height = MAX_HEIGHT;
+			x = (MAX_WIDTH - width) / 2;
+		}
+		var canvas = document.getElementById("canvas");
+		var context = canvas.getContext('2d');
+		context.clearRect(0,0,MAX_WIDTH,MAX_HEIGHT);
+		context.drawImage(image,
+          0, 0, image.width, image.height,
+          x, y, width, height
+        );
+        var base64 = canvas.toDataURL('image/png');
+        
+        var barr, bin, i, len;
+        bin = atob(base64.split('base64,')[1]);
+        len = bin.length;
+        barr = new Uint8Array(len);
+        i = 0;
+        while (i < len) {
+          barr[i] = bin.charCodeAt(i);
+          i++;
+        }
+        blob = new Blob([barr], {type: 'image/png'});
+	}
+	reader.readAsDataURL(file);
+}
+function upload() {
+	if (blob != null) {
+		document.getElementById("message").innerText = "Uploading..."
+		var request = new XMLHttpRequest();
+		request.open("POST", document.URL, true);
+		request.onload = function (oEvent) {
+			document.getElementById("message").innerText = "Uploaded!"
+		};
+		request.send(blob);
+	}
+}
+</script>
+
 </body>
 </html>
