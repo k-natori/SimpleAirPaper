@@ -1,0 +1,2 @@
+SSID:Enter your SSID here
+PASS:Enter password here

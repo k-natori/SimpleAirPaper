@@ -114,32 +114,29 @@ void setup()
   canvas.createCanvas(960, 540);
   canvas.setTextSize(3);
 
-  // Load WiFi ID and PW
+  // Load WiFi SSID and PASS
   String wifiIDString = "wifiID";
   String wifiPWString = "wifiPW";
   File wifiSettingFile = SD.open("/wifi.txt");
   if (wifiSettingFile)
   {
     String line = wifiSettingFile.readStringUntil('\n');
-    int location = line.indexOf("ID:");
-    if (location > 0 && line.length() > 4)
+    int location = line.indexOf("SSID:");
+    if (location >= 0 && line.length() > 5)
     {
+      wifiIDString = line.substring(5);
+      wifiIDString.trim();
     }
-    wifiIDString = line.substring(3);
-    wifiIDString.trim();
-
+    
     line = wifiSettingFile.readStringUntil('\n');
-    location = line.indexOf("PW:");
-    if (location > 0 && line.length() > 4)
+    location = line.indexOf("PASS:");
+    if (location >= 0 && line.length() > 5)
     {
+      wifiPWString = line.substring(5);
+      wifiPWString.trim();
     }
-    wifiPWString = line.substring(3);
-    wifiPWString.trim();
-
+    
     wifiSettingFile.close();
-  }
-  else
-  {
   }
 
   char wifiID[wifiIDString.length() + 1];
