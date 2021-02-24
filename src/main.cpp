@@ -301,9 +301,6 @@ void receiveFormFile(WiFiClient client)
 // Handle POST body from XMLHttpRequest. More simple because of no boundary
 void receivePostFile(WiFiClient client, String fileName)
 {
-  //Serial.println(fileName);
-  //char fileNameChar[fileName.length() + 1];
-  //fileName.toCharArray(fileNameChar, fileName.length() + 1);
   SD.remove(fileName);
   File receivedFile = SD.open(fileName, FILE_WRITE);
   while (client.available())
