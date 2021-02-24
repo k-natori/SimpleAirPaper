@@ -2,15 +2,50 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sample</title>
+<meta name="viewport" content="width=480">
+<style>
+body {
+	font-family: sans-serif;
+	font-size: large;
+}
+canvas {
+	border-style: groove;
+}
+.button-label {
+  display: inline-block;
+  margin: 1em 0;
+  padding: .7em 1em;
+  line-height: 1.4;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.95em;
+  border-radius: 2.5em;
+  border-style: solid;
+}
+.button-label:active {
+  background: #3e8bff;
+  color: #ffffff;
+}
+.button-label input {
+  display: none;
+}
+.button-label button {
+  display: none;
+}
+</style>
+<title>Upload to M5Paper</title>
 </head>
 <body>
 
 <p id="message">Select image and push upload</p>
-
+<label class="button-label" id="file-label">Select Image
 <input type="file" id="file" accept="image/*" oninput="fileSelected()">
+</label>
+<label class="button-label" id="upload-label" style="visibility: hidden;">Upload
 <button id="upload" onclick="upload()">Upload</button>
-<canvas id="canvas" width="960" height="540"></canvas>
+</label>
+<br />
+<canvas id="canvas" width="960" height="540", style="width:480px;"></canvas>
 
 <script type="text/javascript">
 var file = null;
@@ -19,6 +54,7 @@ const MAX_WIDTH = 960;
 const MAX_HEIGHT = 540;
 function fileSelected() {
 	file = document.getElementById("file").files[0];
+	document.getElementById("upload-label").style.visibility = "visible";
 	
 	var image = new Image();
 	var reader = new FileReader();
@@ -68,7 +104,7 @@ function upload() {
 		var request = new XMLHttpRequest();
 		request.open("POST", document.URL, true);
 		request.onload = function (oEvent) {
-			document.getElementById("message").innerText = "Uploaded!"
+			document.getElementById("message").innerText = "Uploaded successfully!"
 		};
 		request.send(blob);
 	}
