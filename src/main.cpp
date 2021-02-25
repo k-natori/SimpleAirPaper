@@ -92,7 +92,7 @@ void setup()
   canvas.drawString(wifiIDString, 540, 20);
   canvas.drawString(urlString, 540, 40);
   canvas.qrcode(urlString, 20, 20, 500, 2);
-  canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
+  canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
 }
 
 void loop()
@@ -197,7 +197,7 @@ void loop()
         // PNG file
         // Fill screen with white color first to prevent ghost
         canvas.fillCanvas(BLACK); 
-        canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
+        canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
         canvas.drawPngFile(SD, receivedFileNameChar);
         canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
       }
@@ -205,7 +205,7 @@ void loop()
       {
         // JPG file
         canvas.fillCanvas(BLACK);
-        canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
+        canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
         canvas.drawJpgFile(SD, receivedFileNameChar);
         canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
       }
@@ -216,7 +216,7 @@ void loop()
       return;
     }
     canvas.drawString(result, 540, 60);
-    canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
+    canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
   }
 }
 
