@@ -58,6 +58,10 @@ canvas {
 <button id="gray" onclick="makeCanvasGray()">Gray</button>
 </label>
 
+<label class="button-label" id="dither-label" style="visibility: hidden;">Dithering
+	<button id="dither" onclick="makeCanvasDitherGray()">Dithering</button>
+	</label>
+
 <label class="button-label" id="binary-label" style="visibility: hidden;">Binary
 <button id="binary" onclick="makeCanvasBinary()">Binary</button>
 </label>
@@ -102,6 +106,7 @@ function fileSelected() {
 		document.getElementById("upload-label").style.visibility = "visible";
 		document.getElementById("original-label").style.visibility = "visible";
 		document.getElementById("gray-label").style.visibility = "visible";
+		document.getElementById("dither-label").style.visibility = "visible";
 		document.getElementById("binary-label").style.visibility = "visible";
 	}
 	reader.readAsDataURL(file);
@@ -123,7 +128,43 @@ function makeCanvasGray() {
 		newData.data[i] = y;
 		newData.data[i + 1] = y;
 		newData.data[i + 2] = y;
-		newData.data[i + 3] = imageData.data[i + 3];
+		newData.data[i + 3] = imageData.data[i+3];
+	}
+	context.putImageData(newData, 0, 0);
+}
+function makeCanvasDitherGray() {
+	if (imageData == null) return;
+	var canvas = document.getElementById("canvas");
+	var context = canvas.getContext('2d');
+	var newData = context.createImageData(MAX_WIDTH, MAX_HEIGHT);
+	var grayArray = new Float32Array(MAX_WIDTH * MAX_HEIGHT);
+	var minGray = 255, maxGray = 0;
+	for (var i = 0; i < imageData.data.length; i += 4) {
+  		var y = 0.2126 * imageData.data[i] + 0.7152 * imageData.data[i + 1] + 0.0722 * imageData.data[i + 2];
+		grayArray[i/4] = y;
+		if (y < minGray) minGray = y;
+		if (y > maxGray) maxGray = y;
+	}
+	for (var i = 0; i < imageData.data.length; i += 4) {
+		var grayLocation = (i/4);
+		var xLocation = grayLocation % MAX_WIDTH;
+		var yLocation = Math.floor((grayLocation) / MAX_WIDTH);
+
+  		var y = grayArray[grayLocation];
+		var leveledY = (y - minGray) * (255 / (maxGray - minGray));
+		var resultY = Math.round((leveledY + 1) / 16) * 16 - 1;
+		var quant_error = leveledY - resultY;
+		if (xLocation < MAX_WIDTH -1) grayArray[grayLocation] += (7/16) * quant_error;
+		if (yLocation < MAX_HEIGHT -1) {
+			if (xLocation > 0) grayArray[MAX_WIDTH * (yLocation+1) + xLocation -1] += (3/16) * quant_error;
+			grayArray[MAX_WIDTH * (yLocation+1) + xLocation] += (5/16) * quant_error;
+			if (xLocation < MAX_WIDTH -1) grayArray[MAX_WIDTH * (yLocation+1) + xLocation+1] += (1/16) * quant_error;
+		}
+
+		newData.data[i] = resultY;
+		newData.data[i + 1] = resultY;
+		newData.data[i + 2] = resultY;
+		newData.data[i + 3] = imageData.data[i+3];
 	}
 	context.putImageData(newData, 0, 0);
 }
@@ -139,7 +180,7 @@ function makeCanvasBinary() {
 		newData.data[i] = y;
 		newData.data[i + 1] = y;
 		newData.data[i + 2] = y;
-		newData.data[i + 3] = imageData.data[i + 3];
+		newData.data[i + 3] = imageData.data[i+3];
 	}
 	context.putImageData(newData, 0, 0);
 }
@@ -164,6 +205,7 @@ function upload() {
 		document.getElementById("upload-label").style.visibility = "hidden";
 		document.getElementById("original-label").style.visibility = "hidden";
 		document.getElementById("gray-label").style.visibility = "hidden";
+		document.getElementById("dither-label").style.visibility = "hidden";
 		document.getElementById("binary-label").style.visibility = "hidden";
 		document.getElementById("message").innerText = "Uploading..."
 		var request = new XMLHttpRequest();
