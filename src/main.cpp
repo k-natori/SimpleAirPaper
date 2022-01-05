@@ -2,7 +2,18 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
+#define buttonX 540
+#define buttonY 400
+#define buttonWidth 400
+#define buttonHeight 100
+#define statusX 540
+#define statusY 60
+#define statusWidth 400
+#define statusHeight 30
+
 M5EPD_Canvas canvas(&M5.EPD);
+M5EPD_Canvas buttonCanvas(&M5.EPD);
+M5EPD_Canvas statusCanvas(&M5.EPD);
 WiFiServer server(80);
 String receivedFileName;
 
@@ -25,6 +36,7 @@ void sendFormHTML(WiFiClient client);
 void receiveFormText(WiFiClient client);
 void receiveFormFile(WiFiClient client);
 void receivePostFile(WiFiClient client, String fileName);
+void displayImageOfFileName(String fileName);
 
 void setup()
 {
@@ -33,12 +45,19 @@ void setup()
   M5.EPD.SetRotation(0);
   M5.EPD.Clear(true);
 
-  
-
   receivedFileName = "";
 
+  // Create fullscreen canvas
   canvas.createCanvas(960, 540);
   canvas.setTextSize(3);
+
+  // Create shutdown button canvas
+  buttonCanvas.createCanvas(buttonWidth, buttonHeight);
+  buttonCanvas.setTextSize(3);
+
+  // Create status text canvas
+  statusCanvas.createCanvas(statusWidth, statusHeight);
+  statusCanvas.setTextSize(3);
 
   // Load WiFi SSID and PASS from "wifi.txt" in SD card
   String wifiIDString = "wifiID";
@@ -88,6 +107,12 @@ void setup()
   // Start web server
   server.begin();
 
+  // Draw shutdown button
+  buttonCanvas.drawString("Shutdown", 80, 40);
+  buttonCanvas.ReverseColor();
+  canvas.drawRect(buttonX, buttonY, buttonWidth, buttonHeight, WHITE);
+  canvas.drawString("Shutdown", buttonX + 80, buttonY + 40);
+
   // Display SSID, IP Address and QR code for this M5Paper
   canvas.drawString(wifiIDString, 540, 20);
   canvas.drawString(urlString, 540, 40);
@@ -104,11 +129,7 @@ void loop()
   {
     enum ConnectionType connectionType = UNDEFINED_CONNECTION;
     enum FileType fileType = UNDEFINED_FILE;
-    String result = "";
     String line = "";
-
-    // Write HTTP header into log file
-    File logFile = SD.open("/log.txt", FILE_WRITE);
 
     while (client.connected())
     {
@@ -116,8 +137,6 @@ void loop()
       {
         line = client.readStringUntil('\n');
         Serial.println(line);
-        if (logFile)
-          logFile.println(line);
 
         // Read http header
         if (line.startsWith("GET /"))
@@ -132,16 +151,18 @@ void loop()
             fileType = JPG_FILE;
         }
 
-        if (line.length() <= 2) // Empty line. header finished
-        {
+        if (line.length() <= 2) 
+        { // Empty line. header finished
           switch (connectionType)
           {
           case GET_CONNECTION:
           { // Send form.html
             sendResponse(client, "HTTP/1.1 200 OK");
             sendFormHTML(client);
-            result = "form.html sent.";
             Serial.println("GET_CONNECTION");
+
+            statusCanvas.drawString("form.html sent.", 0, 0);
+            statusCanvas.pushCanvas(statusX, statusY, UPDATE_MODE_DU4);
             break;
           }
           case POST_CONNECTION:
@@ -150,20 +171,26 @@ void loop()
             switch (fileType)
             {
             case PNG_FILE:
-            {
+            { // Receive PNG file
               Serial.println("PNG_FILE");
+              statusCanvas.drawString("Start receving PNG file.", 0, 0);
+              statusCanvas.pushCanvas(statusX, statusY, UPDATE_MODE_DU4);
               receivePostFile(client, "/received.png");
               break;
             }
             case JPG_FILE:
-            {
+            { // Receive JPG file (not used)
               Serial.println("JPG_FILE");
+              statusCanvas.drawString("Start receving JPG file.", 0, 0);
+              statusCanvas.pushCanvas(statusX, statusY, UPDATE_MODE_DU4);
               receivePostFile(client, "/received.jpg");
               break;
             }
             default:
-            {
+            { // Receive TXT file (not used)
               Serial.println("Text file");
+              statusCanvas.drawString("Start receving TXT file.", 0, 0);
+              statusCanvas.pushCanvas(statusX, statusY, UPDATE_MODE_DU4);
               receiveFormText(client);
             }
             }
@@ -181,42 +208,43 @@ void loop()
         }
       }
     }
-    if (logFile)
-      logFile.close();
 
     if (receivedFileName.length() > 0)
-    {
+    { // File received!
       Serial.println(receivedFileName);
-      // File received!
-      // Convert file name String to char[]
-      char receivedFileNameChar[receivedFileName.length() + 1];
-      receivedFileName.toCharArray(receivedFileNameChar, receivedFileName.length() + 1);
 
-      if (receivedFileName.endsWith("png"))
-      {
-        // PNG file
-        // Fill screen with white color first to prevent ghost
-        canvas.fillCanvas(BLACK); 
-        canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
-        canvas.drawPngFile(SD, receivedFileNameChar);
-        canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
-      }
-      else if (receivedFileName.endsWith("jpg"))
-      {
-        // JPG file
-        canvas.fillCanvas(BLACK);
-        canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
-        canvas.drawJpgFile(SD, receivedFileNameChar);
-        canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
-      }
+      // Display received file
+      displayImageOfFileName(receivedFileName);
 
       // Shutdown M5Paper
       delay(500);
       M5.shutdown();
       return;
     }
-    canvas.drawString(result, 540, 60);
-    canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
+  }
+
+  // Touch detection for shutdown button
+  if (M5.TP.avaliable())
+  {
+    if (!M5.TP.isFingerUp())
+    {
+      M5.TP.update();
+      tp_finger_t FingerItem = M5.TP.readFinger(0);
+      if (FingerItem.x > buttonX && FingerItem.x < (buttonX + buttonWidth) && FingerItem.y > buttonY && FingerItem.y < (buttonY + buttonHeight))
+      { // Touch up inside shutdown button
+
+        // Invert button image
+        buttonCanvas.pushCanvas(buttonX, buttonY, UPDATE_MODE_DU4);
+
+        // display last image
+        displayImageOfFileName("/received.png");
+
+        // Shutdown M5Paper
+        delay(500);
+        M5.shutdown();
+        return;
+      }
+    }
   }
 }
 
@@ -317,4 +345,25 @@ void receivePostFile(WiFiClient client, String fileName)
   }
   receivedFile.close();
   receivedFileName = fileName;
+}
+
+void displayImageOfFileName(String fileName)
+{
+  char fileNameChar[fileName.length() + 1];
+  fileName.toCharArray(fileNameChar, fileName.length() + 1);
+
+  // Fill screen with white color first to prevent ghost
+  canvas.fillCanvas(BLACK);
+  canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
+  if (fileName.endsWith("png"))
+  {
+    // PNG file
+    canvas.drawPngFile(SD, fileNameChar);
+  }
+  else if (fileName.endsWith("jpg"))
+  {
+    // JPG file
+    canvas.drawJpgFile(SD, fileNameChar);
+  }
+  canvas.pushCanvas(0, 0, UPDATE_MODE_GC16);
 }
