@@ -17,6 +17,8 @@ M5EPD_Canvas statusCanvas(&M5.EPD);
 WiFiServer server(80);
 String receivedFileName;
 
+
+
 enum ConnectionType
 {
   UNDEFINED_CONNECTION,
@@ -84,12 +86,7 @@ void setup()
     wifiSettingFile.close();
   }
 
-  // Convert String to char[]
-  char wifiID[wifiIDString.length() + 1];
-  char wifiPW[wifiPWString.length() + 1];
-  wifiIDString.toCharArray(wifiID, wifiIDString.length() + 1);
-  wifiPWString.toCharArray(wifiPW, wifiPWString.length() + 1);
-  WiFi.begin(wifiID, wifiPW);
+  WiFi.begin(wifiIDString.c_str(), wifiPWString.c_str());
 
   Serial.println(wifiIDString);
   // Wait until wifi connected
